@@ -1,0 +1,94 @@
+public with sharing class TaskAutomationEmailApxController {
+    @AuraEnabled
+    public static void sendMailMethod(String mMail ,String mSubject ,String mbody,String recordId){
+
+        List<Messaging.SingleEmailMessage> mails =  new List<Messaging.SingleEmailMessage>();
+
+        // Step 1: Create a new Email
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+
+        // Step 2: Set list of people who should get the email
+        List<String> sendTo = new List<String>();
+        String email = '';
+        if(recordId.startsWith('00Q')){
+            email = [SELECT Email FROM Lead WHERE Id = :recordId].Email;
+        }else if(recordId.startsWith('003')){
+            email = [SELECT Email FROM Contact WHERE Id = :recordId].Email;
+        }
+        if(email != null && email != '' && email != mMail){
+            sendTo.add(mMail);
+        }else{
+            sendTo.add(recordId);
+        }
+
+        mail.setToAddresses(sendTo);
+
+        // Step 3: Set who the email is sent from
+        mail.setReplyTo(UserInfo.getUserEmail()); // change it with your mail address.
+        //mail.setSenderDisplayName(Label.Email_Display_Name);
+
+
+        // Step 4. Set email contents - you can use variables!
+        mail.setSubject(mSubject);
+        mail.setHtmlBody(mbody);
+
+        // Step 5. Add your email to the master list
+        mails.add(mail);
+
+        // Step 6: Send all emails in the master list
+        Messaging.sendEmail(mails);
+    }
+
+    @AuraEnabled
+    public static List<EmailTemplate> getAllEmailTemplates(){
+        List<EmailTemplate> emailTemplateList = [SELECT Body,Id,Name,DeveloperName,Subject FROM EmailTemplate];
+        System.debug(emailTemplateList);
+        return emailTemplateList;
+    }
+
+    @AuraEnabled
+    public static EmailModel getHtmlBody(String recordId,String templateId){
+        try{
+            Messaging.reserveSingleEmailCapacity(1);
+            Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+            String[] toAddresses = new String[]{'invalid@emailaddr.es'};
+            mail.setToAddresses(toAddresses);
+            mail.setUseSignature(false);
+            mail.setSaveAsActivity(false);
+            mail.setSenderDisplayName('MMPT');
+            mail.setTargetObjectId(recordId);
+            mail.setTemplateId(templateId);
+
+            Savepoint sp = Database.setSavepoint();
+            Messaging.sendEmail(new Messaging.SingleEmailMessage[] {mail});
+            Database.rollback(sp);
+            String mailHtmlBody = mail.getPlainTextBody();
+            String mailSubject = mail.getSubject();
+            EmailModel emailModel = new EmailModel();
+            emailModel.mailSubject = mailSubject;
+            emailModel.mailHtmlBody = mailHtmlBody;
+            emailModel.status = 200;
+            return emailModel;
+        }catch (Exception ex){
+            system.debug(ex.getMessage());
+            EmailModel emailModel1 = new EmailModel();
+            emailModel1.status = 301;
+            emailModel1.mailSubject = ex.getMessage();
+            return emailModel1;
+        }
+
+
+    }
+    @AuraEnabled
+    public static String getEmailAddress(String recordId){
+        //String sObjName = recordId.getSObjectType().getDescribe().getName();
+        // To Do dynamic later for object name from id
+        if(recordId.startsWith('00Q')){
+            return [SELECT Email FROM Lead WHERE Id = :recordId].Email;
+        }else if(recordId.startsWith('003')){
+            return [SELECT Email FROM Contact WHERE Id = :recordId].Email;
+        }
+        return null;
+    }
+
+}
