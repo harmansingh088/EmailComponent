@@ -1,0 +1,20 @@
+@isTest
+public with sharing class TaskAutomationEmailApxControllerTest {
+    @isTest(seeAllData=true)
+    public static void basic(){
+        List<EmailTemplate>  emailTemplates = TaskAutomationEmailApxController.getAllEmailTemplates();
+
+        Lead leadObj = [SELECT Id FROM Lead LIMIT 1];
+        TaskAutomationEmailApxController.getHtmlBody(leadObj.Id,emailTemplates[0].Id);
+        TaskAutomationEmailApxController.getEmailAddress(leadObj.Id);
+        TaskAutomationEmailApxController.sendMailMethod('test@gmail.com','tewset','test',leadObj.Id);
+        EmailModel emailModel = new EmailModel();
+        emailModel.status = 43535;
+        emailModel.mailHtmlBody = 'scsdc';
+        emailModel.mailSubject = 'cfesc';
+
+        Contact contactObj = [SELECT Id FROM Contact WHERE Email <> null LIMIT 1];
+        TaskAutomationEmailApxController.sendMailMethod('test@gmail.com','tewset','test',contactObj.Id);
+
+    }
+}
