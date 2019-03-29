@@ -1,0 +1,8 @@
+public with sharing class EmailModel {
+    @AuraEnabled
+    public  String mailSubject;
+    @AuraEnabled
+    public  String mailHtmlBody;
+    @AuraEnabled
+    public Integer status;
+}
